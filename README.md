@@ -19,9 +19,11 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and paste your key from https://console.anthropic.com/settings/keys:
+Edit `.env` and paste your key from https://console.groq.com/keys:
 ```
-ANTHROPIC_API_KEY=sk-ant-...
+GROQ_API_KEY=gsk-...
+# Optional: override the model
+# GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
 ## Run
@@ -35,7 +37,7 @@ Hugging Face cache instantly. Upload a food photo, and you'll see:
 
 1. Predicted food class + confidence (top-3)
 2. Grounded nutrition facts scaled to your chosen portion size
-3. A button to generate a Claude-written recipe + personalized diet advice
+3. A button to generate a Groq-written recipe + personalized diet advice
 
 ## Files
 

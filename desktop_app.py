@@ -3,11 +3,11 @@ Food Recognition & Nutrition Advisor - simple internship demo.
 
 No dataset download, no training - uses an already-trained Food-101 classifier
 (prithivMLmods/Food-101-93M, ~93M params) from Hugging Face for the CNN component,
-a local CSV for grounded nutrition facts, and Claude for recipe/diet-advice generation.
+a local CSV for grounded nutrition facts, and Groq for recipe/diet-advice generation.
 
 Setup (one time):
     pip install -r requirements.txt
-    cp .env.example .env        # then paste your Anthropic API key into .env
+    cp .env.example .env        # then paste your Groq API key into .env
 
 Run:
     python desktop_app.py
@@ -27,6 +27,7 @@ from PIL import Image, ImageTk
 MODEL_NAME = "prithivMLmods/Food-101-93M"
 NUTRITION_CSV = os.path.join(os.path.dirname(__file__), "nutrition_db.csv")
 DISPLAY_SIZE = (320, 320)
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 
 # ---------------- Nutrition lookup ----------------
@@ -90,12 +91,13 @@ Return ONLY valid JSON (no markdown fences, no preamble) matching this schema:
   }}
 }}"""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        temperature=0.2,
         max_tokens=1200,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    text = (getattr(response.choices[0].message, "content", "") or "").strip().replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -201,16 +203,16 @@ class FoodAdvisorApp:
                 self.root.after(0, lambda: self.upload_btn.configure(state="normal"))
 
                 try:
-                    import anthropic
-                    api_key = os.environ.get("ANTHROPIC_API_KEY")
+                    from groq import Groq
+                    api_key = os.environ.get("GROQ_API_KEY")
                     if not api_key:
                         from dotenv import load_dotenv
                         load_dotenv()
-                        api_key = os.environ.get("ANTHROPIC_API_KEY")
+                        api_key = os.environ.get("GROQ_API_KEY")
                     if not api_key:
-                        self._set_status("Classifier ready. No ANTHROPIC_API_KEY found - recipe/advice generation disabled.")
+                        self._set_status("Classifier ready. No GROQ_API_KEY found - recipe/advice generation disabled.")
                         return
-                    self.genai_client = anthropic.Anthropic(api_key=api_key)
+                    self.genai_client = Groq(api_key=api_key)
                     self._set_status("Ready.")
                 except Exception as e:
                     self._set_status(f"Classifier ready. Gen AI setup failed: {e}")
@@ -290,7 +292,7 @@ class FoodAdvisorApp:
             return
 
         self.generate_btn.configure(state="disabled")
-        self._set_status("Asking Claude for a recipe and diet advice...")
+        self._set_status("Asking Groq for a recipe and diet advice...")
 
         def generate():
             user_profile = {
